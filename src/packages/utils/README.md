@@ -14,6 +14,10 @@ yarn add @excalidraw/utils
 
 ## API
 
+### `serializeAsJSON`
+
+See [`serializeAsJSON`](https://github.com/excalidraw/excalidraw/blob/master/src/packages/excalidraw/README.md#serializeAsJSON) for API and description.
+
 ### `exportToBlob` (async)
 
 Export an Excalidraw diagram to a [Blob](https://developer.mozilla.org/en-US/docs/Web/API/Blob).
@@ -24,8 +28,7 @@ Export an Excalidraw diagram to a [SVGElement](https://developer.mozilla.org/en-
 
 ## Usage
 
-Excalidraw utils is published as a UMD (Universal Module Definition).
-If you are using a Web bundler (for instance, Webpack), you can import it as an ES6 module:
+Excalidraw utils is published as a UMD (Universal Module Definition). If you are using a Web bundler (for instance, Webpack), you can import it as an ES6 module:
 
 ```js
 import { exportToSvg, exportToBlob } from "@excalidraw/utils";

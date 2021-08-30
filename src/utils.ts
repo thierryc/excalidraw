@@ -1,10 +1,11 @@
 import colors from "./colors";
 import {
   CURSOR_TYPE,
+  DEFAULT_VERSION,
   FONT_FAMILY,
   WINDOWS_EMOJI_FALLBACK_FONT,
 } from "./constants";
-import { FontFamily, FontString } from "./element/types";
+import { FontFamilyValues, FontString } from "./element/types";
 import { Zoom } from "./types";
 import { unstable_batchedUpdates } from "react-dom";
 import { isDarwin } from "./keys";
@@ -70,9 +71,14 @@ export const isWritableElement = (
 export const getFontFamilyString = ({
   fontFamily,
 }: {
-  fontFamily: FontFamily;
+  fontFamily: FontFamilyValues;
 }) => {
-  return `${FONT_FAMILY[fontFamily]}, ${WINDOWS_EMOJI_FALLBACK_FONT}`;
+  for (const [fontFamilyString, id] of Object.entries(FONT_FAMILY)) {
+    if (id === fontFamily) {
+      return `${fontFamilyString}, ${WINDOWS_EMOJI_FALLBACK_FONT}`;
+    }
+  }
+  return WINDOWS_EMOJI_FALLBACK_FONT;
 };
 
 /** returns fontSize+fontFamily string for assignment to DOM elements */
@@ -81,7 +87,7 @@ export const getFontString = ({
   fontFamily,
 }: {
   fontSize: number;
-  fontFamily: FontFamily;
+  fontFamily: FontFamilyValues;
 }) => {
   return `${fontSize}px ${getFontFamilyString({ fontFamily })}` as FontString;
 };
@@ -122,19 +128,25 @@ export const debounce = <T extends any[]>(
   timeout: number,
 ) => {
   let handle = 0;
-  let lastArgs: T;
+  let lastArgs: T | null = null;
   const ret = (...args: T) => {
     lastArgs = args;
     clearTimeout(handle);
-    handle = window.setTimeout(() => fn(...args), timeout);
+    handle = window.setTimeout(() => {
+      lastArgs = null;
+      fn(...args);
+    }, timeout);
   };
   ret.flush = () => {
     clearTimeout(handle);
     if (lastArgs) {
-      fn(...lastArgs);
+      const _lastArgs = lastArgs;
+      lastArgs = null;
+      fn(..._lastArgs);
     }
   };
   ret.cancel = () => {
+    lastArgs = null;
     clearTimeout(handle);
   };
   return ret;
@@ -159,15 +171,29 @@ export const removeSelection = () => {
 
 export const distance = (x: number, y: number) => Math.abs(x - y);
 
-export const resetCursor = () => {
-  document.documentElement.style.cursor = "";
+export const resetCursor = (canvas: HTMLCanvasElement | null) => {
+  if (canvas) {
+    canvas.style.cursor = "";
+  }
 };
 
-export const setCursorForShape = (shape: string) => {
+export const setCursor = (canvas: HTMLCanvasElement | null, cursor: string) => {
+  if (canvas) {
+    canvas.style.cursor = cursor;
+  }
+};
+
+export const setCursorForShape = (
+  canvas: HTMLCanvasElement | null,
+  shape: string,
+) => {
+  if (!canvas) {
+    return;
+  }
   if (shape === "selection") {
-    resetCursor();
+    resetCursor(canvas);
   } else {
-    document.documentElement.style.cursor = CURSOR_TYPE.CROSSHAIR;
+    canvas.style.cursor = CURSOR_TYPE.CROSSHAIR;
   }
 };
 
@@ -360,4 +386,60 @@ export const nFormatter = (num: number, digits: number): string => {
   return (
     (num / si[index].value).toFixed(digits).replace(rx, "$1") + si[index].symbol
   );
+};
+
+export const getVersion = () => {
+  return (
+    document.querySelector<HTMLMetaElement>('meta[name="version"]')?.content ||
+    DEFAULT_VERSION
+  );
+};
+
+// Adapted from https://github.com/Modernizr/Modernizr/blob/master/feature-detects/emoji.js
+export const supportsEmoji = () => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return false;
+  }
+  const offset = 12;
+  ctx.fillStyle = "#f00";
+  ctx.textBaseline = "top";
+  ctx.font = "32px Arial";
+  // Modernizr used 🐨, but it is sort of supported on Windows 7.
+  // Luckily 😀 isn't supported.
+  ctx.fillText("😀", 0, 0);
+  return ctx.getImageData(offset, offset, 1, 1).data[0] !== 0;
+};
+
+export const getNearestScrollableContainer = (
+  element: HTMLElement,
+): HTMLElement | Document => {
+  let parent = element.parentElement;
+  while (parent) {
+    if (parent === document.body) {
+      return document;
+    }
+    const { overflowY } = window.getComputedStyle(parent);
+    const hasScrollableContent = parent.scrollHeight > parent.clientHeight;
+    if (
+      hasScrollableContent &&
+      (overflowY === "auto" || overflowY === "scroll")
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return document;
+};
+
+export const focusNearestParent = (element: HTMLInputElement) => {
+  let parent = element.parentElement;
+  while (parent) {
+    if (parent.tabIndex > -1) {
+      parent.focus();
+      return;
+    }
+    parent = parent.parentElement;
+  }
 };

@@ -1,19 +1,18 @@
 import React from "react";
-import { CODES } from "../keys";
-import { t } from "../i18n";
-import { register } from "./register";
 import {
   DistributeHorizontallyIcon,
   DistributeVerticallyIcon,
 } from "../components/icons";
-import { getSelectedElements, isSomeElementSelected } from "../scene";
-import { getElementMap, getNonDeletedElements } from "../element";
 import { ToolButton } from "../components/ToolButton";
-import { ExcalidrawElement } from "../element/types";
-import { AppState } from "../types";
 import { distributeElements, Distribution } from "../disitrubte";
+import { getElementMap, getNonDeletedElements } from "../element";
+import { ExcalidrawElement } from "../element/types";
+import { t } from "../i18n";
+import { CODES } from "../keys";
+import { getSelectedElements, isSomeElementSelected } from "../scene";
+import { AppState } from "../types";
 import { getShortcutKey } from "../utils";
-import { EVENT_ALIGN, trackEvent } from "../analytics";
+import { register } from "./register";
 
 const enableActionGroup = (
   elements: readonly ExcalidrawElement[],
@@ -40,7 +39,6 @@ const distributeSelectedElements = (
 export const distributeHorizontally = register({
   name: "distributeHorizontally",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "distribute", "horizontally");
     return {
       appState,
       elements: distributeSelectedElements(elements, appState, {
@@ -55,7 +53,7 @@ export const distributeHorizontally = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<DistributeHorizontallyIcon appearance={appState.appearance} />}
+      icon={<DistributeHorizontallyIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={`${t("labels.distributeHorizontally")} — ${getShortcutKey(
         "Alt+H",
@@ -69,7 +67,6 @@ export const distributeHorizontally = register({
 export const distributeVertically = register({
   name: "distributeVertically",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "distribute", "vertically");
     return {
       appState,
       elements: distributeSelectedElements(elements, appState, {
@@ -84,7 +81,7 @@ export const distributeVertically = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<DistributeVerticallyIcon appearance={appState.appearance} />}
+      icon={<DistributeVerticallyIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={`${t("labels.distributeVertically")} — ${getShortcutKey("Alt+V")}`}
       aria-label={t("labels.distributeVertically")}

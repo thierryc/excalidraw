@@ -1,4 +1,5 @@
 export const isDarwin = /Mac|iPod|iPhone|iPad/.test(window.navigator.platform);
+export const isWindows = /^Win/.test(window.navigator.platform);
 
 export const CODES = {
   EQUAL: "Equal",
@@ -13,12 +14,16 @@ export const CODES = {
   NINE: "Digit9",
   QUOTE: "Quote",
   ZERO: "Digit0",
+  SLASH: "Slash",
   C: "KeyC",
+  D: "KeyD",
   G: "KeyG",
   F: "KeyF",
   H: "KeyH",
   V: "KeyV",
+  X: "KeyX",
   Z: "KeyZ",
+  R: "KeyR",
 } as const;
 
 export const KEYS = {
@@ -39,7 +44,9 @@ export const KEYS = {
   A: "a",
   D: "d",
   E: "e",
+  G: "g",
   L: "l",
+  O: "o",
   P: "p",
   Q: "q",
   R: "r",
@@ -47,6 +54,7 @@ export const KEYS = {
   T: "t",
   V: "v",
   X: "x",
+  Y: "y",
   Z: "z",
 } as const;
 

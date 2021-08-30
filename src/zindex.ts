@@ -1,8 +1,8 @@
-import { AppState } from "./types";
+import { bumpVersion } from "./element/mutateElement";
 import { ExcalidrawElement } from "./element/types";
 import { getElementsInGroup } from "./groups";
-import { findLastIndex, findIndex } from "./utils";
-import { trackEvent, EVENT_LAYER } from "./analytics";
+import { AppState } from "./types";
+import { findIndex, findLastIndex } from "./utils";
 
 /**
  * Returns indices of elements to move based on selected elements.
@@ -52,7 +52,7 @@ const toContiguousGroups = (array: number[]) => {
  */
 const getTargetIndex = (
   appState: AppState,
-  elements: ExcalidrawElement[],
+  elements: readonly ExcalidrawElement[],
   boundaryIndex: number,
   direction: "left" | "right",
 ) => {
@@ -118,12 +118,24 @@ const getTargetIndex = (
   return candidateIndex;
 };
 
+const getTargetElementsMap = (
+  elements: readonly ExcalidrawElement[],
+  indices: number[],
+) => {
+  return indices.reduce((acc, index) => {
+    const element = elements[index];
+    acc[element.id] = element;
+    return acc;
+  }, {} as Record<string, ExcalidrawElement>);
+};
+
 const shiftElements = (
   appState: AppState,
-  elements: ExcalidrawElement[],
+  elements: readonly ExcalidrawElement[],
   direction: "left" | "right",
 ) => {
   const indicesToMove = getIndicesToMove(elements, appState);
+  const targetElementsMap = getTargetElementsMap(elements, indicesToMove);
   let groupedIndices = toContiguousGroups(indicesToMove);
 
   if (direction === "right") {
@@ -176,8 +188,12 @@ const shiftElements = (
           ];
   });
 
-  trackEvent(EVENT_LAYER, "move", direction === "left" ? "down" : "up");
-  return elements;
+  return elements.map((element) => {
+    if (targetElementsMap[element.id]) {
+      return bumpVersion(element);
+    }
+    return element;
+  });
 };
 
 const shiftElementsToEnd = (
@@ -186,7 +202,7 @@ const shiftElementsToEnd = (
   direction: "left" | "right",
 ) => {
   const indicesToMove = getIndicesToMove(elements, appState);
-  const targetElements: ExcalidrawElement[] = [];
+  const targetElementsMap = getTargetElementsMap(elements, indicesToMove);
   const displacedElements: ExcalidrawElement[] = [];
 
   let leadingIndex: number;
@@ -224,17 +240,18 @@ const shiftElementsToEnd = (
   }
 
   for (let index = leadingIndex; index < trailingIndex + 1; index++) {
-    if (indicesToMove.includes(index)) {
-      targetElements.push(elements[index]);
-    } else {
+    if (!indicesToMove.includes(index)) {
       displacedElements.push(elements[index]);
     }
   }
 
+  const targetElements = Object.values(targetElementsMap).map((element) => {
+    return bumpVersion(element);
+  });
+
   const leadingElements = elements.slice(0, leadingIndex);
   const trailingElements = elements.slice(trailingIndex + 1);
 
-  trackEvent(EVENT_LAYER, "move", direction === "left" ? "back" : "front");
   return direction === "left"
     ? [
         ...leadingElements,
@@ -257,14 +274,14 @@ export const moveOneLeft = (
   elements: readonly ExcalidrawElement[],
   appState: AppState,
 ) => {
-  return shiftElements(appState, elements.slice(), "left");
+  return shiftElements(appState, elements, "left");
 };
 
 export const moveOneRight = (
   elements: readonly ExcalidrawElement[],
   appState: AppState,
 ) => {
-  return shiftElements(appState, elements.slice(), "right");
+  return shiftElements(appState, elements, "right");
 };
 
 export const moveAllLeft = (

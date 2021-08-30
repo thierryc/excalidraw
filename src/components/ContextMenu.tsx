@@ -2,88 +2,111 @@ import React from "react";
 import { render, unmountComponentAtNode } from "react-dom";
 import clsx from "clsx";
 import { Popover } from "./Popover";
+import { t } from "../i18n";
 
 import "./ContextMenu.scss";
 import {
   getShortcutFromShortcutName,
   ShortcutName,
 } from "../actions/shortcuts";
+import { Action } from "../actions/types";
+import { ActionManager } from "../actions/manager";
+import { AppState } from "../types";
 
-type ContextMenuOption = {
-  checked?: boolean;
-  shortcutName: ShortcutName;
-  label: string;
-  action(): void;
-};
+export type ContextMenuOption = "separator" | Action;
 
-type Props = {
+type ContextMenuProps = {
   options: ContextMenuOption[];
   onCloseRequest?(): void;
   top: number;
   left: number;
+  actionManager: ActionManager;
+  appState: Readonly<AppState>;
 };
 
-const ContextMenu = ({ options, onCloseRequest, top, left }: Props) => {
-  const isDarkTheme = !!document
-    .querySelector(".excalidraw")
-    ?.classList.contains("Appearance_dark");
+const ContextMenu = ({
+  options,
+  onCloseRequest,
+  top,
+  left,
+  actionManager,
+  appState,
+}: ContextMenuProps) => {
   return (
-    <div
-      className={clsx("excalidraw", {
-        "Appearance_dark Appearance_dark-background-none": isDarkTheme,
-      })}
+    <Popover
+      onCloseRequest={onCloseRequest}
+      top={top}
+      left={left}
+      fitInViewport={true}
     >
-      <Popover
-        onCloseRequest={onCloseRequest}
-        top={top}
-        left={left}
-        fitInViewport={true}
+      <ul
+        className="context-menu"
+        onContextMenu={(event) => event.preventDefault()}
       >
-        <ul
-          className="context-menu"
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {options.map(({ action, checked, shortcutName, label }, idx) => (
-            <li data-testid={shortcutName} key={idx} onClick={onCloseRequest}>
+        {options.map((option, idx) => {
+          if (option === "separator") {
+            return <hr key={idx} className="context-menu-option-separator" />;
+          }
+
+          const actionName = option.name;
+          const label = option.contextItemLabel
+            ? t(option.contextItemLabel)
+            : "";
+          return (
+            <li key={idx} data-testid={actionName} onClick={onCloseRequest}>
               <button
-                className={`context-menu-option 
-                ${shortcutName === "delete" ? "dangerous" : ""}
-                ${checked ? "checkmark" : ""}`}
-                onClick={action}
+                className={clsx("context-menu-option", {
+                  dangerous: actionName === "deleteSelectedElements",
+                  checkmark: option.checked?.(appState),
+                })}
+                onClick={() => actionManager.executeAction(option)}
               >
                 <div className="context-menu-option__label">{label}</div>
-                <div className="context-menu-option__shortcut">
-                  {shortcutName
-                    ? getShortcutFromShortcutName(shortcutName)
+                <kbd className="context-menu-option__shortcut">
+                  {actionName
+                    ? getShortcutFromShortcutName(actionName as ShortcutName)
                     : ""}
-                </div>
+                </kbd>
               </button>
             </li>
-          ))}
-        </ul>
-      </Popover>
-    </div>
+          );
+        })}
+      </ul>
+    </Popover>
   );
 };
 
-let contextMenuNode: HTMLDivElement;
-const getContextMenuNode = (): HTMLDivElement => {
+const contextMenuNodeByContainer = new WeakMap<HTMLElement, HTMLDivElement>();
+
+const getContextMenuNode = (container: HTMLElement): HTMLDivElement => {
+  let contextMenuNode = contextMenuNodeByContainer.get(container);
   if (contextMenuNode) {
     return contextMenuNode;
   }
-  const div = document.createElement("div");
-  document.body.appendChild(div);
-  return (contextMenuNode = div);
+  contextMenuNode = document.createElement("div");
+  container
+    .querySelector(".excalidraw-contextMenuContainer")!
+    .appendChild(contextMenuNode);
+  contextMenuNodeByContainer.set(container, contextMenuNode);
+  return contextMenuNode;
 };
 
 type ContextMenuParams = {
   options: (ContextMenuOption | false | null | undefined)[];
-  top: number;
-  left: number;
+  top: ContextMenuProps["top"];
+  left: ContextMenuProps["left"];
+  actionManager: ContextMenuProps["actionManager"];
+  appState: Readonly<AppState>;
+  container: HTMLElement;
 };
 
-const handleClose = () => {
-  unmountComponentAtNode(getContextMenuNode());
+const handleClose = (container: HTMLElement) => {
+  const contextMenuNode = contextMenuNodeByContainer.get(container);
+  if (contextMenuNode) {
+    unmountComponentAtNode(contextMenuNode);
+    contextMenuNode.remove();
+    contextMenuNodeByContainer.delete(container);
+  }
 };
 
 export default {
@@ -100,9 +123,11 @@ export default {
           top={params.top}
           left={params.left}
           options={options}
-          onCloseRequest={handleClose}
+          onCloseRequest={() => handleClose(params.container)}
+          actionManager={params.actionManager}
+          appState={params.appState}
         />,
-        getContextMenuNode(),
+        getContextMenuNode(params.container),
       );
     }
   },

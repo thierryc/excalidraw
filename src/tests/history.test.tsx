@@ -1,13 +1,16 @@
 import React from "react";
-import { render } from "./test-utils";
+import { assertSelectedElements, render } from "./test-utils";
 import ExcalidrawApp from "../excalidraw-app";
-import { UI } from "./helpers/ui";
+import { Keyboard, Pointer, UI } from "./helpers/ui";
 import { API } from "./helpers/api";
 import { getDefaultAppState } from "../appState";
 import { waitFor } from "@testing-library/react";
 import { createUndoAction, createRedoAction } from "../actions/actionHistory";
+import { EXPORT_DATA_TYPES } from "../constants";
 
 const { h } = window;
+
+const mouse = new Pointer("mouse");
 
 describe("history", () => {
   it("initializing scene should end up with single history entry", async () => {
@@ -76,7 +79,7 @@ describe("history", () => {
       new Blob(
         [
           JSON.stringify({
-            type: "excalidraw",
+            type: EXPORT_DATA_TYPES.excalidraw,
             appState: {
               ...getDefaultAppState(),
               viewBackgroundColor: "#000",
@@ -108,5 +111,79 @@ describe("history", () => {
       expect.objectContaining({ id: "B", isDeleted: false }),
       expect.objectContaining({ id: "A", isDeleted: true }),
     ]);
+  });
+
+  it("undo/redo works properly with groups", async () => {
+    await render(<ExcalidrawApp />);
+    const rect1 = API.createElement({ type: "rectangle", groupIds: ["A"] });
+    const rect2 = API.createElement({ type: "rectangle", groupIds: ["A"] });
+
+    h.elements = [rect1, rect2];
+    mouse.select(rect1);
+    assertSelectedElements([rect1, rect2]);
+    expect(h.state.selectedGroupIds).toEqual({ A: true });
+
+    Keyboard.withModifierKeys({ ctrl: true }, () => {
+      Keyboard.keyPress("d");
+    });
+    expect(h.elements.length).toBe(4);
+    assertSelectedElements([h.elements[2], h.elements[3]]);
+    expect(h.state.selectedGroupIds).not.toEqual(
+      expect.objectContaining({ A: true }),
+    );
+
+    Keyboard.withModifierKeys({ ctrl: true }, () => {
+      Keyboard.keyPress("z");
+    });
+    expect(h.elements.length).toBe(4);
+    expect(h.elements).toEqual([
+      expect.objectContaining({ id: rect1.id, isDeleted: false }),
+      expect.objectContaining({ id: rect2.id, isDeleted: false }),
+      expect.objectContaining({ id: `${rect1.id}_copy`, isDeleted: true }),
+      expect.objectContaining({ id: `${rect2.id}_copy`, isDeleted: true }),
+    ]);
+    expect(h.state.selectedGroupIds).toEqual({ A: true });
+
+    Keyboard.withModifierKeys({ ctrl: true, shift: true }, () => {
+      Keyboard.keyPress("z");
+    });
+    expect(h.elements.length).toBe(4);
+    expect(h.elements).toEqual([
+      expect.objectContaining({ id: rect1.id, isDeleted: false }),
+      expect.objectContaining({ id: rect2.id, isDeleted: false }),
+      expect.objectContaining({ id: `${rect1.id}_copy`, isDeleted: false }),
+      expect.objectContaining({ id: `${rect2.id}_copy`, isDeleted: false }),
+    ]);
+    expect(h.state.selectedGroupIds).not.toEqual(
+      expect.objectContaining({ A: true }),
+    );
+
+    // undo again, and duplicate once more
+    // -------------------------------------------------------------------------
+
+    Keyboard.withModifierKeys({ ctrl: true }, () => {
+      Keyboard.keyPress("z");
+      Keyboard.keyPress("d");
+    });
+    expect(h.elements.length).toBe(6);
+    expect(h.elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: rect1.id, isDeleted: false }),
+        expect.objectContaining({ id: rect2.id, isDeleted: false }),
+        expect.objectContaining({ id: `${rect1.id}_copy`, isDeleted: true }),
+        expect.objectContaining({ id: `${rect2.id}_copy`, isDeleted: true }),
+        expect.objectContaining({
+          id: `${rect1.id}_copy_copy`,
+          isDeleted: false,
+        }),
+        expect.objectContaining({
+          id: `${rect2.id}_copy_copy`,
+          isDeleted: false,
+        }),
+      ]),
+    );
+    expect(h.state.selectedGroupIds).not.toEqual(
+      expect.objectContaining({ A: true }),
+    );
   });
 });

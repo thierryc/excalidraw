@@ -1,8 +1,8 @@
-@import "../css/_variables";
+@import "../css/variables.module";
 
 .excalidraw {
   .PasteChartDialog {
-    @media #{$is-mobile-query} {
+    @include isMobile {
       .Island {
         display: flex;
         flex-direction: column;
@@ -13,7 +13,7 @@
       align-items: center;
       justify-content: space-around;
       flex-wrap: wrap;
-      @media #{$is-mobile-query} {
+      @include isMobile {
         flex-direction: column;
         justify-content: center;
       }

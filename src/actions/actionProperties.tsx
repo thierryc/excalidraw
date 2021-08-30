@@ -1,56 +1,66 @@
 import React from "react";
-import { getLanguage } from "../i18n";
-import {
-  ExcalidrawElement,
-  ExcalidrawTextElement,
-  TextAlign,
-  FontFamily,
-  ExcalidrawLinearElement,
-  Arrowhead,
-} from "../element/types";
-import {
-  getCommonAttributeOfSelectedElements,
-  isSomeElementSelected,
-  getTargetElements,
-  canChangeSharpness,
-  canHaveArrowheads,
-} from "../scene";
-import { ButtonSelect } from "../components/ButtonSelect";
+import { AppState } from "../../src/types";
 import { ButtonIconSelect } from "../components/ButtonIconSelect";
+import { ColorPicker } from "../components/ColorPicker";
 import { IconPicker } from "../components/IconPicker";
 import {
-  isTextElement,
-  redrawTextBoundingBox,
-  getNonDeletedElements,
-} from "../element";
-import { isLinearElement, isLinearElementType } from "../element/typeChecks";
-import { ColorPicker } from "../components/ColorPicker";
-import { AppState } from "../../src/types";
-import { t } from "../i18n";
-import { register } from "./register";
-import { newElementWith } from "../element/mutateElement";
-import { DEFAULT_FONT_SIZE, DEFAULT_FONT_FAMILY } from "../constants";
-import { randomInteger } from "../random";
-import {
-  FillHachureIcon,
-  FillCrossHatchIcon,
-  FillSolidIcon,
-  StrokeWidthIcon,
-  StrokeStyleSolidIcon,
-  StrokeStyleDashedIcon,
-  StrokeStyleDottedIcon,
-  EdgeSharpIcon,
-  EdgeRoundIcon,
-  SloppinessArchitectIcon,
-  SloppinessArtistIcon,
-  SloppinessCartoonistIcon,
   ArrowheadArrowIcon,
   ArrowheadBarIcon,
   ArrowheadDotIcon,
   ArrowheadNoneIcon,
+  EdgeRoundIcon,
+  EdgeSharpIcon,
+  FillCrossHatchIcon,
+  FillHachureIcon,
+  FillSolidIcon,
+  FontFamilyCodeIcon,
+  FontFamilyHandDrawnIcon,
+  FontFamilyNormalIcon,
+  FontSizeExtraLargeIcon,
+  FontSizeLargeIcon,
+  FontSizeMediumIcon,
+  FontSizeSmallIcon,
+  SloppinessArchitectIcon,
+  SloppinessArtistIcon,
+  SloppinessCartoonistIcon,
+  StrokeStyleDashedIcon,
+  StrokeStyleDottedIcon,
+  StrokeStyleSolidIcon,
+  StrokeWidthIcon,
+  TextAlignCenterIcon,
+  TextAlignLeftIcon,
+  TextAlignRightIcon,
 } from "../components/icons";
-import { EVENT_CHANGE, trackEvent } from "../analytics";
-import colors from "../colors";
+import {
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_SIZE,
+  FONT_FAMILY,
+} from "../constants";
+import {
+  getNonDeletedElements,
+  isTextElement,
+  redrawTextBoundingBox,
+} from "../element";
+import { newElementWith } from "../element/mutateElement";
+import { isLinearElement, isLinearElementType } from "../element/typeChecks";
+import {
+  Arrowhead,
+  ExcalidrawElement,
+  ExcalidrawLinearElement,
+  ExcalidrawTextElement,
+  FontFamilyValues,
+  TextAlign,
+} from "../element/types";
+import { getLanguage, t } from "../i18n";
+import { randomInteger } from "../random";
+import {
+  canChangeSharpness,
+  canHaveArrowheads,
+  getCommonAttributeOfSelectedElements,
+  getTargetElements,
+  isSomeElementSelected,
+} from "../scene";
+import { register } from "./register";
 
 const changeProperty = (
   elements: readonly ExcalidrawElement[],
@@ -92,23 +102,19 @@ const getFormValue = function <T>(
 export const actionChangeStrokeColor = register({
   name: "changeStrokeColor",
   perform: (elements, appState, value) => {
-    if (value !== appState.currentItemStrokeColor) {
-      trackEvent(
-        EVENT_CHANGE,
-        "stroke color",
-        colors.elementStroke.includes(value)
-          ? `${value} (picker ${colors.elementStroke.indexOf(value)})`
-          : value,
-      );
-    }
     return {
-      elements: changeProperty(elements, appState, (el) =>
-        newElementWith(el, {
-          strokeColor: value,
-        }),
-      ),
-      appState: { ...appState, currentItemStrokeColor: value },
-      commitToHistory: true,
+      ...(value.currentItemStrokeColor && {
+        elements: changeProperty(elements, appState, (el) =>
+          newElementWith(el, {
+            strokeColor: value.currentItemStrokeColor,
+          }),
+        ),
+      }),
+      appState: {
+        ...appState,
+        ...value,
+      },
+      commitToHistory: !!value.currentItemStrokeColor,
     };
   },
   PanelComponent: ({ elements, appState, updateData }) => (
@@ -123,7 +129,11 @@ export const actionChangeStrokeColor = register({
           (element) => element.strokeColor,
           appState.currentItemStrokeColor,
         )}
-        onChange={updateData}
+        onChange={(color) => updateData({ currentItemStrokeColor: color })}
+        isActive={appState.openPopup === "strokeColorPicker"}
+        setActive={(active) =>
+          updateData({ openPopup: active ? "strokeColorPicker" : null })
+        }
       />
     </>
   ),
@@ -132,24 +142,19 @@ export const actionChangeStrokeColor = register({
 export const actionChangeBackgroundColor = register({
   name: "changeBackgroundColor",
   perform: (elements, appState, value) => {
-    if (value !== appState.currentItemBackgroundColor) {
-      trackEvent(
-        EVENT_CHANGE,
-        "background color",
-        colors.elementBackground.includes(value)
-          ? `${value} (picker ${colors.elementBackground.indexOf(value)})`
-          : value,
-      );
-    }
-
     return {
-      elements: changeProperty(elements, appState, (el) =>
-        newElementWith(el, {
-          backgroundColor: value,
-        }),
-      ),
-      appState: { ...appState, currentItemBackgroundColor: value },
-      commitToHistory: true,
+      ...(value.currentItemBackgroundColor && {
+        elements: changeProperty(elements, appState, (el) =>
+          newElementWith(el, {
+            backgroundColor: value.currentItemBackgroundColor,
+          }),
+        ),
+      }),
+      appState: {
+        ...appState,
+        ...value,
+      },
+      commitToHistory: !!value.currentItemBackgroundColor,
     };
   },
   PanelComponent: ({ elements, appState, updateData }) => (
@@ -164,7 +169,11 @@ export const actionChangeBackgroundColor = register({
           (element) => element.backgroundColor,
           appState.currentItemBackgroundColor,
         )}
-        onChange={updateData}
+        onChange={(color) => updateData({ currentItemBackgroundColor: color })}
+        isActive={appState.openPopup === "backgroundColorPicker"}
+        setActive={(active) =>
+          updateData({ openPopup: active ? "backgroundColorPicker" : null })
+        }
       />
     </>
   ),
@@ -173,7 +182,6 @@ export const actionChangeBackgroundColor = register({
 export const actionChangeFillStyle = register({
   name: "changeFillStyle",
   perform: (elements, appState, value) => {
-    trackEvent(EVENT_CHANGE, "fill", value);
     return {
       elements: changeProperty(elements, appState, (el) =>
         newElementWith(el, {
@@ -192,17 +200,17 @@ export const actionChangeFillStyle = register({
           {
             value: "hachure",
             text: t("labels.hachure"),
-            icon: <FillHachureIcon appearance={appState.appearance} />,
+            icon: <FillHachureIcon theme={appState.theme} />,
           },
           {
             value: "cross-hatch",
             text: t("labels.crossHatch"),
-            icon: <FillCrossHatchIcon appearance={appState.appearance} />,
+            icon: <FillCrossHatchIcon theme={appState.theme} />,
           },
           {
             value: "solid",
             text: t("labels.solid"),
-            icon: <FillSolidIcon appearance={appState.appearance} />,
+            icon: <FillSolidIcon theme={appState.theme} />,
           },
         ]}
         group="fill"
@@ -223,7 +231,6 @@ export const actionChangeFillStyle = register({
 export const actionChangeStrokeWidth = register({
   name: "changeStrokeWidth",
   perform: (elements, appState, value) => {
-    trackEvent(EVENT_CHANGE, "stroke", "width", value);
     return {
       elements: changeProperty(elements, appState, (el) =>
         newElementWith(el, {
@@ -243,32 +250,17 @@ export const actionChangeStrokeWidth = register({
           {
             value: 1,
             text: t("labels.thin"),
-            icon: (
-              <StrokeWidthIcon
-                appearance={appState.appearance}
-                strokeWidth={2}
-              />
-            ),
+            icon: <StrokeWidthIcon theme={appState.theme} strokeWidth={2} />,
           },
           {
             value: 2,
             text: t("labels.bold"),
-            icon: (
-              <StrokeWidthIcon
-                appearance={appState.appearance}
-                strokeWidth={6}
-              />
-            ),
+            icon: <StrokeWidthIcon theme={appState.theme} strokeWidth={6} />,
           },
           {
             value: 4,
             text: t("labels.extraBold"),
-            icon: (
-              <StrokeWidthIcon
-                appearance={appState.appearance}
-                strokeWidth={10}
-              />
-            ),
+            icon: <StrokeWidthIcon theme={appState.theme} strokeWidth={10} />,
           },
         ]}
         value={getFormValue(
@@ -286,7 +278,6 @@ export const actionChangeStrokeWidth = register({
 export const actionChangeSloppiness = register({
   name: "changeSloppiness",
   perform: (elements, appState, value) => {
-    trackEvent(EVENT_CHANGE, "stroke", "sloppiness", value);
     return {
       elements: changeProperty(elements, appState, (el) =>
         newElementWith(el, {
@@ -307,17 +298,17 @@ export const actionChangeSloppiness = register({
           {
             value: 0,
             text: t("labels.architect"),
-            icon: <SloppinessArchitectIcon appearance={appState.appearance} />,
+            icon: <SloppinessArchitectIcon theme={appState.theme} />,
           },
           {
             value: 1,
             text: t("labels.artist"),
-            icon: <SloppinessArtistIcon appearance={appState.appearance} />,
+            icon: <SloppinessArtistIcon theme={appState.theme} />,
           },
           {
             value: 2,
             text: t("labels.cartoonist"),
-            icon: <SloppinessCartoonistIcon appearance={appState.appearance} />,
+            icon: <SloppinessCartoonistIcon theme={appState.theme} />,
           },
         ]}
         value={getFormValue(
@@ -335,7 +326,6 @@ export const actionChangeSloppiness = register({
 export const actionChangeStrokeStyle = register({
   name: "changeStrokeStyle",
   perform: (elements, appState, value) => {
-    trackEvent(EVENT_CHANGE, "style", value);
     return {
       elements: changeProperty(elements, appState, (el) =>
         newElementWith(el, {
@@ -355,17 +345,17 @@ export const actionChangeStrokeStyle = register({
           {
             value: "solid",
             text: t("labels.strokeStyle_solid"),
-            icon: <StrokeStyleSolidIcon appearance={appState.appearance} />,
+            icon: <StrokeStyleSolidIcon theme={appState.theme} />,
           },
           {
             value: "dashed",
             text: t("labels.strokeStyle_dashed"),
-            icon: <StrokeStyleDashedIcon appearance={appState.appearance} />,
+            icon: <StrokeStyleDashedIcon theme={appState.theme} />,
           },
           {
             value: "dotted",
             text: t("labels.strokeStyle_dotted"),
-            icon: <StrokeStyleDottedIcon appearance={appState.appearance} />,
+            icon: <StrokeStyleDottedIcon theme={appState.theme} />,
           },
         ]}
         value={getFormValue(
@@ -383,7 +373,6 @@ export const actionChangeStrokeStyle = register({
 export const actionChangeOpacity = register({
   name: "changeOpacity",
   perform: (elements, appState, value) => {
-    trackEvent(EVENT_CHANGE, "opacity", "value", value);
     return {
       elements: changeProperty(elements, appState, (el) =>
         newElementWith(el, {
@@ -455,13 +444,29 @@ export const actionChangeFontSize = register({
   PanelComponent: ({ elements, appState, updateData }) => (
     <fieldset>
       <legend>{t("labels.fontSize")}</legend>
-      <ButtonSelect
+      <ButtonIconSelect
         group="font-size"
         options={[
-          { value: 16, text: t("labels.small") },
-          { value: 20, text: t("labels.medium") },
-          { value: 28, text: t("labels.large") },
-          { value: 36, text: t("labels.veryLarge") },
+          {
+            value: 16,
+            text: t("labels.small"),
+            icon: <FontSizeSmallIcon theme={appState.theme} />,
+          },
+          {
+            value: 20,
+            text: t("labels.medium"),
+            icon: <FontSizeMediumIcon theme={appState.theme} />,
+          },
+          {
+            value: 28,
+            text: t("labels.large"),
+            icon: <FontSizeLargeIcon theme={appState.theme} />,
+          },
+          {
+            value: 36,
+            text: t("labels.veryLarge"),
+            icon: <FontSizeExtraLargeIcon theme={appState.theme} />,
+          },
         ]}
         value={getFormValue(
           elements,
@@ -498,16 +503,32 @@ export const actionChangeFontFamily = register({
     };
   },
   PanelComponent: ({ elements, appState, updateData }) => {
-    const options: { value: FontFamily; text: string }[] = [
-      { value: 1, text: t("labels.handDrawn") },
-      { value: 2, text: t("labels.normal") },
-      { value: 3, text: t("labels.code") },
+    const options: {
+      value: FontFamilyValues;
+      text: string;
+      icon: JSX.Element;
+    }[] = [
+      {
+        value: FONT_FAMILY.Virgil,
+        text: t("labels.handDrawn"),
+        icon: <FontFamilyHandDrawnIcon theme={appState.theme} />,
+      },
+      {
+        value: FONT_FAMILY.Helvetica,
+        text: t("labels.normal"),
+        icon: <FontFamilyNormalIcon theme={appState.theme} />,
+      },
+      {
+        value: FONT_FAMILY.Cascadia,
+        text: t("labels.code"),
+        icon: <FontFamilyCodeIcon theme={appState.theme} />,
+      },
     ];
 
     return (
       <fieldset>
         <legend>{t("labels.fontFamily")}</legend>
-        <ButtonSelect<FontFamily | false>
+        <ButtonIconSelect<FontFamilyValues | false>
           group="font-family"
           options={options}
           value={getFormValue(
@@ -548,12 +569,24 @@ export const actionChangeTextAlign = register({
   PanelComponent: ({ elements, appState, updateData }) => (
     <fieldset>
       <legend>{t("labels.textAlign")}</legend>
-      <ButtonSelect<TextAlign | false>
+      <ButtonIconSelect<TextAlign | false>
         group="text-align"
         options={[
-          { value: "left", text: t("labels.left") },
-          { value: "center", text: t("labels.center") },
-          { value: "right", text: t("labels.right") },
+          {
+            value: "left",
+            text: t("labels.left"),
+            icon: <TextAlignLeftIcon theme={appState.theme} />,
+          },
+          {
+            value: "center",
+            text: t("labels.center"),
+            icon: <TextAlignCenterIcon theme={appState.theme} />,
+          },
+          {
+            value: "right",
+            text: t("labels.right"),
+            icon: <TextAlignRightIcon theme={appState.theme} />,
+          },
         ]}
         value={getFormValue(
           elements,
@@ -580,7 +613,6 @@ export const actionChangeSharpness = register({
     const shouldUpdateForLinearElements = targetElements.length
       ? targetElements.every(isLinearElement)
       : isLinearElementType(appState.elementType);
-    trackEvent(EVENT_CHANGE, "edge", value);
     return {
       elements: changeProperty(elements, appState, (el) =>
         newElementWith(el, {
@@ -608,12 +640,12 @@ export const actionChangeSharpness = register({
           {
             value: "sharp",
             text: t("labels.sharp"),
-            icon: <EdgeSharpIcon appearance={appState.appearance} />,
+            icon: <EdgeSharpIcon theme={appState.theme} />,
           },
           {
             value: "round",
             text: t("labels.round"),
-            icon: <EdgeRoundIcon appearance={appState.appearance} />,
+            icon: <EdgeRoundIcon theme={appState.theme} />,
           },
         ]}
         value={getFormValue(
@@ -642,12 +674,6 @@ export const actionChangeArrowhead = register({
     return {
       elements: changeProperty(elements, appState, (el) => {
         if (isLinearElement(el)) {
-          trackEvent(
-            EVENT_CHANGE,
-            `arrowhead ${value.position}`,
-            value.type || "none",
-          );
-
           const { position, type } = value;
 
           if (position === "start") {
@@ -687,40 +713,27 @@ export const actionChangeArrowhead = register({
               {
                 value: null,
                 text: t("labels.arrowhead_none"),
-                icon: <ArrowheadNoneIcon appearance={appState.appearance} />,
+                icon: <ArrowheadNoneIcon theme={appState.theme} />,
                 keyBinding: "q",
               },
               {
                 value: "arrow",
                 text: t("labels.arrowhead_arrow"),
                 icon: (
-                  <ArrowheadArrowIcon
-                    appearance={appState.appearance}
-                    flip={!isRTL}
-                  />
+                  <ArrowheadArrowIcon theme={appState.theme} flip={!isRTL} />
                 ),
                 keyBinding: "w",
               },
               {
                 value: "bar",
                 text: t("labels.arrowhead_bar"),
-                icon: (
-                  <ArrowheadBarIcon
-                    appearance={appState.appearance}
-                    flip={!isRTL}
-                  />
-                ),
+                icon: <ArrowheadBarIcon theme={appState.theme} flip={!isRTL} />,
                 keyBinding: "e",
               },
               {
                 value: "dot",
                 text: t("labels.arrowhead_dot"),
-                icon: (
-                  <ArrowheadDotIcon
-                    appearance={appState.appearance}
-                    flip={!isRTL}
-                  />
-                ),
+                icon: <ArrowheadDotIcon theme={appState.theme} flip={!isRTL} />,
                 keyBinding: "r",
               },
             ]}
@@ -743,40 +756,27 @@ export const actionChangeArrowhead = register({
                 value: null,
                 text: t("labels.arrowhead_none"),
                 keyBinding: "q",
-                icon: <ArrowheadNoneIcon appearance={appState.appearance} />,
+                icon: <ArrowheadNoneIcon theme={appState.theme} />,
               },
               {
                 value: "arrow",
                 text: t("labels.arrowhead_arrow"),
                 keyBinding: "w",
                 icon: (
-                  <ArrowheadArrowIcon
-                    appearance={appState.appearance}
-                    flip={isRTL}
-                  />
+                  <ArrowheadArrowIcon theme={appState.theme} flip={isRTL} />
                 ),
               },
               {
                 value: "bar",
                 text: t("labels.arrowhead_bar"),
                 keyBinding: "e",
-                icon: (
-                  <ArrowheadBarIcon
-                    appearance={appState.appearance}
-                    flip={isRTL}
-                  />
-                ),
+                icon: <ArrowheadBarIcon theme={appState.theme} flip={isRTL} />,
               },
               {
                 value: "dot",
                 text: t("labels.arrowhead_dot"),
                 keyBinding: "r",
-                icon: (
-                  <ArrowheadDotIcon
-                    appearance={appState.appearance}
-                    flip={isRTL}
-                  />
-                ),
+                icon: <ArrowheadDotIcon theme={appState.theme} flip={isRTL} />,
               },
             ]}
             value={getFormValue<Arrowhead | null>(

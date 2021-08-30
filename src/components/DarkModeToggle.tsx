@@ -2,6 +2,7 @@ import "./ToolIcon.scss";
 
 import React from "react";
 import { t } from "../i18n";
+import { ToolButton } from "./ToolButton";
 
 export type Appearence = "light" | "dark";
 
@@ -10,31 +11,21 @@ export type Appearence = "light" | "dark";
 export const DarkModeToggle = (props: {
   value: Appearence;
   onChange: (value: Appearence) => void;
+  title?: string;
 }) => {
+  const title =
+    props.title ||
+    (props.value === "dark" ? t("buttons.lightMode") : t("buttons.darkMode"));
+
   return (
-    <label
-      className={`ToolIcon ToolIcon_type_floating ToolIcon_size_M`}
-      title={
-        props.value === "dark" ? t("buttons.lightMode") : t("buttons.darkMode")
-      }
-    >
-      <input
-        className="ToolIcon_type_checkbox ToolIcon_toggle_opaque"
-        type="checkbox"
-        onChange={(event) =>
-          props.onChange(event.target.checked ? "dark" : "light")
-        }
-        checked={props.value === "dark"}
-        aria-label={
-          props.value === "dark"
-            ? t("buttons.lightMode")
-            : t("buttons.darkMode")
-        }
-      />
-      <div className="ToolIcon__icon">
-        {props.value === "light" ? ICONS.MOON : ICONS.SUN}
-      </div>
-    </label>
+    <ToolButton
+      type="icon"
+      icon={props.value === "light" ? ICONS.MOON : ICONS.SUN}
+      title={title}
+      aria-label={title}
+      onClick={() => props.onChange(props.value === "dark" ? "light" : "dark")}
+      data-testid="toggle-dark-mode"
+    />
   );
 };
 

@@ -1,23 +1,23 @@
 import React from "react";
-import { AppState, Zoom } from "../types";
-import { ExcalidrawElement } from "../element/types";
 import { ActionManager } from "../actions/manager";
+import { getNonDeletedElements } from "../element";
+import { ExcalidrawElement } from "../element/types";
+import { t } from "../i18n";
+import { useIsMobile } from "../components/App";
 import {
-  hasBackground,
-  hasStroke,
   canChangeSharpness,
-  hasText,
   canHaveArrowheads,
   getTargetElements,
+  hasBackground,
+  hasStrokeStyle,
+  hasStrokeWidth,
+  hasText,
 } from "../scene";
-import { t } from "../i18n";
 import { SHAPES } from "../shapes";
-import { ToolButton } from "./ToolButton";
+import { AppState, Zoom } from "../types";
 import { capitalizeString, isTransparent, setCursorForShape } from "../utils";
 import Stack from "./Stack";
-import useIsMobile from "../is-mobile";
-import { getNonDeletedElements } from "../element";
-import { trackEvent, EVENT_SHAPE, EVENT_DIALOG } from "../analytics";
+import { ToolButton } from "./ToolButton";
 
 export const SelectedShapeActions = ({
   appState,
@@ -54,10 +54,17 @@ export const SelectedShapeActions = ({
       {showChangeBackgroundIcons && renderAction("changeBackgroundColor")}
       {showFillIcons && renderAction("changeFillStyle")}
 
-      {(hasStroke(elementType) ||
-        targetElements.some((element) => hasStroke(element.type))) && (
+      {(hasStrokeWidth(elementType) ||
+        targetElements.some((element) => hasStrokeWidth(element.type))) &&
+        renderAction("changeStrokeWidth")}
+
+      {(elementType === "freedraw" ||
+        targetElements.some((element) => element.type === "freedraw")) &&
+        renderAction("changeStrokeShape")}
+
+      {(hasStrokeStyle(elementType) ||
+        targetElements.some((element) => hasStrokeStyle(element.type))) && (
         <>
-          {renderAction("changeStrokeWidth")}
           {renderAction("changeStrokeStyle")}
           {renderAction("changeSloppiness")}
         </>
@@ -144,29 +151,22 @@ export const SelectedShapeActions = ({
   );
 };
 
-const LIBRARY_ICON = (
-  // fa-th-large
-  <svg viewBox="0 0 512 512">
-    <path d="M296 32h192c13.255 0 24 10.745 24 24v160c0 13.255-10.745 24-24 24H296c-13.255 0-24-10.745-24-24V56c0-13.255 10.745-24 24-24zm-80 0H24C10.745 32 0 42.745 0 56v160c0 13.255 10.745 24 24 24h192c13.255 0 24-10.745 24-24V56c0-13.255-10.745-24-24-24zM0 296v160c0 13.255 10.745 24 24 24h192c13.255 0 24-10.745 24-24V296c0-13.255-10.745-24-24-24H24c-13.255 0-24 10.745-24 24zm296 184h192c13.255 0 24-10.745 24-24V296c0-13.255-10.745-24-24-24H296c-13.255 0-24 10.745-24 24v160c0 13.255 10.745 24 24 24z" />
-  </svg>
-);
-
 export const ShapesSwitcher = ({
+  canvas,
   elementType,
   setAppState,
-  isLibraryOpen,
 }: {
+  canvas: HTMLCanvasElement | null;
   elementType: ExcalidrawElement["type"];
   setAppState: React.Component<any, AppState>["setState"];
-  isLibraryOpen: boolean;
 }) => (
   <>
     {SHAPES.map(({ value, icon, key }, index) => {
       const label = t(`toolBar.${value}`);
       const letter = typeof key === "string" ? key : key[0];
-      const shortcut = `${capitalizeString(letter)} ${t(
-        "shortcutsDialog.or",
-      )} ${index + 1}`;
+      const shortcut = `${capitalizeString(letter)} ${t("helpDialog.or")} ${
+        index + 1
+      }`;
       return (
         <ToolButton
           className="Shape"
@@ -181,34 +181,17 @@ export const ShapesSwitcher = ({
           aria-keyshortcuts={shortcut}
           data-testid={value}
           onChange={() => {
-            trackEvent(EVENT_SHAPE, value, "toolbar");
             setAppState({
               elementType: value,
               multiElement: null,
               selectedElementIds: {},
             });
-            setCursorForShape(value);
+            setCursorForShape(canvas, value);
             setAppState({});
           }}
         />
       );
     })}
-    <ToolButton
-      className="Shape ToolIcon_type_button__library"
-      type="button"
-      icon={LIBRARY_ICON}
-      name="editor-library"
-      keyBindingLabel="9"
-      aria-keyshortcuts="9"
-      title={`${capitalizeString(t("toolBar.library"))} — 9`}
-      aria-label={capitalizeString(t("toolBar.library"))}
-      onClick={() => {
-        if (!isLibraryOpen) {
-          trackEvent(EVENT_DIALOG, "library");
-        }
-        setAppState({ isLibraryOpen: !isLibraryOpen });
-      }}
-    />
   </>
 );
 
@@ -221,12 +204,9 @@ export const ZoomActions = ({
 }) => (
   <Stack.Col gap={1}>
     <Stack.Row gap={1} align="center">
-      {renderAction("zoomIn")}
       {renderAction("zoomOut")}
+      {renderAction("zoomIn")}
       {renderAction("resetZoom")}
-      <div style={{ marginInlineStart: 4 }}>
-        {(zoom.value * 100).toFixed(0)}%
-      </div>
     </Stack.Row>
   </Stack.Col>
 );

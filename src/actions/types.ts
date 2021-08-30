@@ -1,27 +1,44 @@
 import React from "react";
 import { ExcalidrawElement } from "../element/types";
-import { AppState } from "../types";
+import { AppState, ExcalidrawProps } from "../types";
+import Library from "../data/library";
+import { ToolButtonSize } from "../components/ToolButton";
 
 /** if false, the action should be prevented */
 export type ActionResult =
   | {
       elements?: readonly ExcalidrawElement[] | null;
-      appState?: MarkOptional<AppState, "offsetTop" | "offsetLeft"> | null;
+      appState?: MarkOptional<
+        AppState,
+        "offsetTop" | "offsetLeft" | "width" | "height"
+      > | null;
       commitToHistory: boolean;
       syncHistory?: boolean;
     }
   | false;
 
+type AppAPI = {
+  canvas: HTMLCanvasElement | null;
+  focusContainer(): void;
+  library: Library;
+};
+
 type ActionFn = (
   elements: readonly ExcalidrawElement[],
   appState: Readonly<AppState>,
   formData: any,
+  app: AppAPI,
 ) => ActionResult | Promise<ActionResult>;
 
 export type UpdaterFn = (res: ActionResult) => void;
 export type ActionFilterFn = (action: Action) => void;
 
 export type ActionName =
+  | "copy"
+  | "cut"
+  | "paste"
+  | "copyAsPng"
+  | "copyAsSvg"
   | "sendBackward"
   | "bringForward"
   | "sendToBack"
@@ -29,10 +46,14 @@ export type ActionName =
   | "copyStyles"
   | "selectAll"
   | "pasteStyles"
+  | "gridMode"
+  | "zenMode"
+  | "stats"
   | "changeStrokeColor"
   | "changeBackgroundColor"
   | "changeFillStyle"
   | "changeStrokeWidth"
+  | "changeStrokeShape"
   | "changeSloppiness"
   | "changeStrokeStyle"
   | "changeArrowhead"
@@ -46,9 +67,9 @@ export type ActionName =
   | "changeProjectName"
   | "changeExportBackground"
   | "changeExportEmbedScene"
-  | "changeShouldAddWatermark"
-  | "saveScene"
-  | "saveAsScene"
+  | "changeExportScale"
+  | "saveToActiveFile"
+  | "saveFileToDisk"
   | "loadScene"
   | "duplicateSelection"
   | "deleteSelectedElements"
@@ -75,37 +96,43 @@ export type ActionName =
   | "alignVerticallyCentered"
   | "alignHorizontallyCentered"
   | "distributeHorizontally"
-  | "distributeVertically";
+  | "distributeVertically"
+  | "flipHorizontal"
+  | "flipVertical"
+  | "viewMode"
+  | "exportWithDarkMode"
+  | "toggleTheme";
+
+export type PanelComponentProps = {
+  elements: readonly ExcalidrawElement[];
+  appState: AppState;
+  updateData: (formData?: any) => void;
+  appProps: ExcalidrawProps;
+  data?: Partial<{ id: string; size: ToolButtonSize }>;
+};
 
 export interface Action {
   name: ActionName;
-  PanelComponent?: React.FC<{
-    elements: readonly ExcalidrawElement[];
-    appState: AppState;
-    updateData: (formData?: any) => void;
-    id?: string;
-  }>;
+  PanelComponent?: React.FC<PanelComponentProps>;
   perform: ActionFn;
   keyPriority?: number;
   keyTest?: (
-    event: KeyboardEvent,
+    event: React.KeyboardEvent | KeyboardEvent,
     appState: AppState,
     elements: readonly ExcalidrawElement[],
   ) => boolean;
   contextItemLabel?: string;
-  contextMenuOrder?: number;
   contextItemPredicate?: (
     elements: readonly ExcalidrawElement[],
     appState: AppState,
   ) => boolean;
+  checked?: (appState: Readonly<AppState>) => boolean;
 }
 
 export interface ActionsManagerInterface {
   actions: Record<ActionName, Action>;
   registerAction: (action: Action) => void;
-  handleKeyDown: (event: KeyboardEvent) => boolean;
-  getContextMenuItems: (
-    actionFilter: ActionFilterFn,
-  ) => { label: string; action: () => void }[];
+  handleKeyDown: (event: React.KeyboardEvent | KeyboardEvent) => boolean;
   renderAction: (name: ActionName) => React.ReactElement | null;
+  executeAction: (action: Action) => void;
 }

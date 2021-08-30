@@ -3,17 +3,22 @@ import {
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE,
   DEFAULT_TEXT_ALIGN,
+  EXPORT_SCALES,
 } from "./constants";
 import { t } from "./i18n";
-import { AppState, FlooredNumber, NormalizedZoomValue } from "./types";
+import { AppState, NormalizedZoomValue } from "./types";
 import { getDateTime } from "./utils";
+
+const defaultExportScale = EXPORT_SCALES.includes(devicePixelRatio)
+  ? devicePixelRatio
+  : 1;
 
 export const getDefaultAppState = (): Omit<
   AppState,
-  "offsetTop" | "offsetLeft"
+  "offsetTop" | "offsetLeft" | "width" | "height"
 > => {
   return {
-    appearance: "light",
+    theme: "light",
     collaborators: new Map(),
     currentChartType: "bar",
     currentItemBackgroundColor: "transparent",
@@ -39,10 +44,11 @@ export const getDefaultAppState = (): Omit<
     elementType: "selection",
     errorMessage: null,
     exportBackground: true,
+    exportScale: defaultExportScale,
     exportEmbedScene: false,
+    exportWithDarkMode: false,
     fileHandle: null,
     gridSize: null,
-    height: window.innerHeight,
     isBindingEnabled: true,
     isLibraryOpen: false,
     isLoading: false,
@@ -52,25 +58,26 @@ export const getDefaultAppState = (): Omit<
     multiElement: null,
     name: `${t("labels.untitled")}-${getDateTime()}`,
     openMenu: null,
+    openPopup: null,
     pasteDialog: { shown: false, data: null },
     previousSelectedElementIds: {},
     resizingElement: null,
     scrolledOutside: false,
-    scrollX: 0 as FlooredNumber,
-    scrollY: 0 as FlooredNumber,
+    scrollX: 0,
+    scrollY: 0,
     selectedElementIds: {},
     selectedGroupIds: {},
     selectionElement: null,
-    shouldAddWatermark: false,
     shouldCacheIgnoreZoom: false,
-    showShortcutsDialog: false,
+    showHelpDialog: false,
     showStats: false,
     startBoundElement: null,
     suggestedBindings: [],
+    toastMessage: null,
     viewBackgroundColor: oc.white,
-    width: window.innerWidth,
     zenModeEnabled: false,
     zoom: { value: 1 as NormalizedZoomValue, translation: { x: 0, y: 0 } },
+    viewModeEnabled: false,
   };
 };
 
@@ -89,7 +96,7 @@ const APP_STATE_STORAGE_CONF = (<
 >(
   config: { [K in keyof T]: K extends keyof AppState ? T[K] : never },
 ) => config)({
-  appearance: { browser: true, export: false },
+  theme: { browser: true, export: false },
   collaborators: { browser: false, export: false },
   currentChartType: { browser: true, export: false },
   currentItemBackgroundColor: { browser: true, export: false },
@@ -116,6 +123,8 @@ const APP_STATE_STORAGE_CONF = (<
   errorMessage: { browser: false, export: false },
   exportBackground: { browser: true, export: false },
   exportEmbedScene: { browser: true, export: false },
+  exportScale: { browser: true, export: false },
+  exportWithDarkMode: { browser: true, export: false },
   fileHandle: { browser: false, export: false },
   gridSize: { browser: true, export: true },
   height: { browser: false, export: false },
@@ -130,6 +139,7 @@ const APP_STATE_STORAGE_CONF = (<
   offsetLeft: { browser: false, export: false },
   offsetTop: { browser: false, export: false },
   openMenu: { browser: true, export: false },
+  openPopup: { browser: false, export: false },
   pasteDialog: { browser: false, export: false },
   previousSelectedElementIds: { browser: true, export: false },
   resizingElement: { browser: false, export: false },
@@ -139,16 +149,17 @@ const APP_STATE_STORAGE_CONF = (<
   selectedElementIds: { browser: true, export: false },
   selectedGroupIds: { browser: true, export: false },
   selectionElement: { browser: false, export: false },
-  shouldAddWatermark: { browser: true, export: false },
   shouldCacheIgnoreZoom: { browser: true, export: false },
-  showShortcutsDialog: { browser: false, export: false },
+  showHelpDialog: { browser: false, export: false },
   showStats: { browser: true, export: false },
   startBoundElement: { browser: false, export: false },
   suggestedBindings: { browser: false, export: false },
+  toastMessage: { browser: false, export: false },
   viewBackgroundColor: { browser: true, export: true },
   width: { browser: false, export: false },
   zenModeEnabled: { browser: true, export: false },
   zoom: { browser: true, export: false },
+  viewModeEnabled: { browser: false, export: false },
 });
 
 const _clearAppStateForStorage = <ExportType extends "export" | "browser">(

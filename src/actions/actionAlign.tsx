@@ -1,7 +1,5 @@
 import React from "react";
-import { KEYS } from "../keys";
-import { t } from "../i18n";
-import { register } from "./register";
+import { alignElements, Alignment } from "../align";
 import {
   AlignBottomIcon,
   AlignLeftIcon,
@@ -10,14 +8,15 @@ import {
   CenterHorizontallyIcon,
   CenterVerticallyIcon,
 } from "../components/icons";
-import { getSelectedElements, isSomeElementSelected } from "../scene";
-import { getElementMap, getNonDeletedElements } from "../element";
 import { ToolButton } from "../components/ToolButton";
+import { getElementMap, getNonDeletedElements } from "../element";
 import { ExcalidrawElement } from "../element/types";
+import { t } from "../i18n";
+import { KEYS } from "../keys";
+import { getSelectedElements, isSomeElementSelected } from "../scene";
 import { AppState } from "../types";
-import { alignElements, Alignment } from "../align";
 import { getShortcutKey } from "../utils";
-import { trackEvent, EVENT_ALIGN } from "../analytics";
+import { register } from "./register";
 
 const enableActionGroup = (
   elements: readonly ExcalidrawElement[],
@@ -44,7 +43,6 @@ const alignSelectedElements = (
 export const actionAlignTop = register({
   name: "alignTop",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "align", "top");
     return {
       appState,
       elements: alignSelectedElements(elements, appState, {
@@ -60,7 +58,7 @@ export const actionAlignTop = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<AlignTopIcon appearance={appState.appearance} />}
+      icon={<AlignTopIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={`${t("labels.alignTop")} — ${getShortcutKey(
         "CtrlOrCmd+Shift+Up",
@@ -74,7 +72,6 @@ export const actionAlignTop = register({
 export const actionAlignBottom = register({
   name: "alignBottom",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "align", "bottom");
     return {
       appState,
       elements: alignSelectedElements(elements, appState, {
@@ -90,7 +87,7 @@ export const actionAlignBottom = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<AlignBottomIcon appearance={appState.appearance} />}
+      icon={<AlignBottomIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={`${t("labels.alignBottom")} — ${getShortcutKey(
         "CtrlOrCmd+Shift+Down",
@@ -104,7 +101,6 @@ export const actionAlignBottom = register({
 export const actionAlignLeft = register({
   name: "alignLeft",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "align", "left");
     return {
       appState,
       elements: alignSelectedElements(elements, appState, {
@@ -120,7 +116,7 @@ export const actionAlignLeft = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<AlignLeftIcon appearance={appState.appearance} />}
+      icon={<AlignLeftIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={`${t("labels.alignLeft")} — ${getShortcutKey(
         "CtrlOrCmd+Shift+Left",
@@ -134,7 +130,6 @@ export const actionAlignLeft = register({
 export const actionAlignRight = register({
   name: "alignRight",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "align", "right");
     return {
       appState,
       elements: alignSelectedElements(elements, appState, {
@@ -150,7 +145,7 @@ export const actionAlignRight = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<AlignRightIcon appearance={appState.appearance} />}
+      icon={<AlignRightIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={`${t("labels.alignRight")} — ${getShortcutKey(
         "CtrlOrCmd+Shift+Right",
@@ -164,7 +159,6 @@ export const actionAlignRight = register({
 export const actionAlignVerticallyCentered = register({
   name: "alignVerticallyCentered",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "vertically", "center");
     return {
       appState,
       elements: alignSelectedElements(elements, appState, {
@@ -178,7 +172,7 @@ export const actionAlignVerticallyCentered = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<CenterVerticallyIcon appearance={appState.appearance} />}
+      icon={<CenterVerticallyIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={t("labels.centerVertically")}
       aria-label={t("labels.centerVertically")}
@@ -190,7 +184,6 @@ export const actionAlignVerticallyCentered = register({
 export const actionAlignHorizontallyCentered = register({
   name: "alignHorizontallyCentered",
   perform: (elements, appState) => {
-    trackEvent(EVENT_ALIGN, "horizontally", "center");
     return {
       appState,
       elements: alignSelectedElements(elements, appState, {
@@ -204,7 +197,7 @@ export const actionAlignHorizontallyCentered = register({
     <ToolButton
       hidden={!enableActionGroup(elements, appState)}
       type="button"
-      icon={<CenterHorizontallyIcon appearance={appState.appearance} />}
+      icon={<CenterHorizontallyIcon theme={appState.theme} />}
       onClick={() => updateData(null)}
       title={t("labels.centerHorizontally")}
       aria-label={t("labels.centerHorizontally")}

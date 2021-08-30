@@ -1,5 +1,6 @@
 import oc from "open-color";
 import React, { useLayoutEffect, useRef, useState } from "react";
+import { trackEvent } from "../analytics";
 import { ChartElements, renderSpreadsheet, Spreadsheet } from "../charts";
 import { ChartType } from "../element/types";
 import { t } from "../i18n";
@@ -33,20 +34,21 @@ const ChartPreviewBtn = (props: {
       0,
     );
     setChartElements(elements);
-
-    const svg = exportToSvg(elements, {
-      exportBackground: false,
-      viewBackgroundColor: oc.white,
-      shouldAddWatermark: false,
-    });
-
+    let svg: SVGSVGElement;
     const previewNode = previewRef.current!;
 
-    previewNode.appendChild(svg);
+    (async () => {
+      svg = await exportToSvg(elements, {
+        exportBackground: false,
+        viewBackgroundColor: oc.white,
+      });
 
-    if (props.selected) {
-      (previewNode.parentNode as HTMLDivElement).focus();
-    }
+      previewNode.appendChild(svg);
+
+      if (props.selected) {
+        (previewNode.parentNode as HTMLDivElement).focus();
+      }
+    })();
 
     return () => {
       previewNode.removeChild(svg);
@@ -86,6 +88,7 @@ export const PasteChartDialog = ({
 
   const handleChartClick = (chartType: ChartType, elements: ChartElements) => {
     onInsertChart(elements);
+    trackEvent("magic", "chart", chartType);
     setAppState({
       currentChartType: chartType,
       pasteDialog: {

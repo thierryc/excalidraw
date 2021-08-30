@@ -1,12 +1,33 @@
 import React, { useRef } from "react";
-import { t } from "../../i18n";
-import { Dialog } from "../../components/Dialog";
 import { copyTextToSystemClipboard } from "../../clipboard";
+import { Dialog } from "../../components/Dialog";
+import {
+  clipboard,
+  start,
+  stop,
+  share,
+  shareIOS,
+  shareWindows,
+} from "../../components/icons";
 import { ToolButton } from "../../components/ToolButton";
-import { clipboard, start, stop } from "../../components/icons";
-
+import { t } from "../../i18n";
 import "./RoomDialog.scss";
-import { EVENT_SHARE, trackEvent } from "../../analytics";
+import Stack from "../../components/Stack";
+import { AppState } from "../../types";
+
+const getShareIcon = () => {
+  const navigator = window.navigator as any;
+  const isAppleBrowser = /Apple/.test(navigator.vendor);
+  const isWindowsBrowser = navigator.appVersion.indexOf("Win") !== -1;
+
+  if (isAppleBrowser) {
+    return shareIOS;
+  } else if (isWindowsBrowser) {
+    return shareWindows;
+  }
+
+  return share;
+};
 
 const RoomDialog = ({
   handleClose,
@@ -16,6 +37,7 @@ const RoomDialog = ({
   onRoomCreate,
   onRoomDestroy,
   setErrorMessage,
+  theme,
 }: {
   handleClose: () => void;
   activeRoomLink: string;
@@ -24,18 +46,30 @@ const RoomDialog = ({
   onRoomCreate: () => void;
   onRoomDestroy: () => void;
   setErrorMessage: (message: string) => void;
+  theme: AppState["theme"];
 }) => {
   const roomLinkInput = useRef<HTMLInputElement>(null);
 
   const copyRoomLink = async () => {
     try {
       await copyTextToSystemClipboard(activeRoomLink);
-      trackEvent(EVENT_SHARE, "copy link");
     } catch (error) {
       setErrorMessage(error.message);
     }
     if (roomLinkInput.current) {
       roomLinkInput.current.select();
+    }
+  };
+
+  const shareRoomLink = async () => {
+    try {
+      await navigator.share({
+        title: t("roomDialog.shareTitle"),
+        text: t("roomDialog.shareTitle"),
+        url: activeRoomLink,
+      });
+    } catch (error) {
+      // Just ignore.
     }
   };
 
@@ -71,13 +105,24 @@ const RoomDialog = ({
             <p>{t("roomDialog.desc_inProgressIntro")}</p>
             <p>{t("roomDialog.desc_shareLink")}</p>
             <div className="RoomDialog-linkContainer">
-              <ToolButton
-                type="button"
-                icon={clipboard}
-                title={t("labels.copy")}
-                aria-label={t("labels.copy")}
-                onClick={copyRoomLink}
-              />
+              <Stack.Row gap={2}>
+                {"share" in navigator ? (
+                  <ToolButton
+                    type="button"
+                    icon={getShareIcon()}
+                    title={t("labels.share")}
+                    aria-label={t("labels.share")}
+                    onClick={shareRoomLink}
+                  />
+                ) : null}
+                <ToolButton
+                  type="button"
+                  icon={clipboard}
+                  title={t("labels.copy")}
+                  aria-label={t("labels.copy")}
+                  onClick={copyRoomLink}
+                />
+              </Stack.Row>
               <input
                 value={activeRoomLink}
                 readOnly={true}
@@ -95,7 +140,6 @@ const RoomDialog = ({
                 value={username || ""}
                 className="RoomDialog-username TextInput"
                 onChange={(event) => onUsernameChange(event.target.value)}
-                onBlur={() => trackEvent(EVENT_SHARE, "name")}
                 onKeyPress={(event) => event.key === "Enter" && handleClose()}
               />
             </div>
@@ -123,7 +167,12 @@ const RoomDialog = ({
     );
   };
   return (
-    <Dialog small onCloseRequest={handleClose} title={t("labels.createRoom")}>
+    <Dialog
+      small
+      onCloseRequest={handleClose}
+      title={t("labels.liveCollaboration")}
+      theme={theme}
+    >
       {renderRoomDialog()}
     </Dialog>
   );
